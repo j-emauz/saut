@@ -5,6 +5,7 @@
 # This file includes the relevant testing commands required for 
 # testing this directory and lists subdirectories to be tested as well.
 subdirs("gtest")
-subdirs("laser_values")
-subdirs("ekf_funcional")
-subdirs("transforms_quaisquer")
+subdirs("pioneer_p3dx_model/p3dx_control")
+subdirs("laser_line_extraction")
+subdirs("pioneer_p3dx_model/p3dx_description")
+subdirs("pioneer_p3dx_model/p3dx_gazebo")
