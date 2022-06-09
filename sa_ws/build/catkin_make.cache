@@ -1,2 +1,2 @@
-ua_ros_p3dx/p3dx_control:ua_ros_p3dx/p3dx_description:ua_ros_p3dx/p3dx_gazebo
+ekf_funcional:laser_values:transforms_quaisquer
 -DCATKIN_DEVEL_PREFIX=/home/kunfuxu/saut/sa_ws/devel -DCMAKE_INSTALL_PREFIX=/home/kunfuxu/saut/sa_ws/install -G Unix Makefiles

@@ -5,6 +5,6 @@
 # This file includes the relevant testing commands required for 
 # testing this directory and lists subdirectories to be tested as well.
 subdirs("gtest")
-subdirs("ua_ros_p3dx/p3dx_control")
-subdirs("ua_ros_p3dx/p3dx_description")
-subdirs("ua_ros_p3dx/p3dx_gazebo")
+subdirs("laser_values")
+subdirs("ekf_funcional")
+subdirs("transforms_quaisquer")
