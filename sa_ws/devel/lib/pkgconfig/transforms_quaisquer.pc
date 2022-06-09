@@ -1,0 +1,8 @@
+prefix=/home/kunfuxu/saut/sa_ws/devel
+
+Name: transforms_quaisquer
+Description: Description of transforms_quaisquer
+Version: 0.0.0
+Cflags: 
+Libs: -L${prefix}/lib 
+Requires: 

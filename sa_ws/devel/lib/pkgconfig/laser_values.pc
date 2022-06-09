@@ -1,0 +1,8 @@
+prefix=/home/kunfuxu/saut/sa_ws/devel
+
+Name: laser_values
+Description: Description of laser_values
+Version: 0.0.0
+Cflags: 
+Libs: -L${prefix}/lib 
+Requires: 
