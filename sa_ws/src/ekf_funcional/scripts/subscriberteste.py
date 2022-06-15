@@ -6,7 +6,8 @@ from sensor_msgs.msg import LaserScan
 from nav_msgs.msg import Odometry
 from geometry_msgs.msg import *
 from tf2_msgs import *
-#import tf
+import tf2_ros
+import tf
 from tf.transformations import euler_from_quaternion
 #import scipy.linalg
 from cmath import pi
@@ -14,7 +15,13 @@ from cmath import pi
 range_ar = np.zeros((726, 1))
 #pos = []
 #ori = []
-odom = []
+odom = [0, 0, 0]
+
+REst = np.diag([
+    0.5,  # variance of location on x-axis ?????????
+    0.5,  # variance of location on y-axis ?????????
+    np.deg2rad(10),  # variance of theta ??????????
+]) ** 2  # predict state covariance
 
 
 #lidar_angles = np.linspace(-5, 5, 640)
@@ -305,6 +312,24 @@ def normalizelineparameters(alpha, r):
     return alpha, r, isRNegated
 
 
+#EKF FUNCTIONS
+def ekf_estimation(xEst, Eest, u):
+    # Predict step
+    # xEst é o anterior e vai ser atualizado no final
+    G_x = np.array([[1.0, 0, -u[0, 0] * math.sin(xEst[2, 0] + u[1, 0])],
+                    [0, 1.0, u[0, 0] * math.cos(xEst[2, 0] + u[1, 0])],
+                    [0, 0, 1.0]])
+
+    b = np.array([[u[0, 0] * math.cos(xEst[2, 0] + u[1, 0])],
+                  [u[0, 0] * math.sin(xEst[2, 0] + u[1, 0])],
+                  [u[1, 0]]])
+
+    Eest = G_x @ Eest @ G_x.T + REst
+    xEst = xEst + b
+
+    return xEst, Eest
+
+
 
 # ROS FUNCTIONS
 
@@ -337,12 +362,21 @@ if __name__ == '__main__':
     rospy.init_node('monkey')
     #rate = rospy.Rate(10)
 
+    # subscribe to odom and laser
     call1 = rospy.Subscriber('/scan', LaserScan, callback)
     call2 = rospy.Subscriber('/pose', Odometry, callback2)
+    
+    broadcaster = tf2_ros.StaticTransformBroadcaster()
+    static_transformStamped = geometry_msgs.msg.TransformStamped()
+
+
+
+    # initializations
     i = 0
     pos_prev = [0, 0, 0]
     pos_at = [0, 0, 0]
-    xprev = np.array([0, 0, 0])
+    EEst = np.eye(3)
+    xEst = np.array([[0], [0], [0]])
 
     rate = rospy.Rate(5)
     while not rospy.is_shutdown():
@@ -372,8 +406,29 @@ if __name__ == '__main__':
         dist = np.transpose(np.asmatrix(dist))
         thetas = np.transpose(np.asmatrix(thetas))
         z, Q, segends = extractlines(thetas, dist, thresholds)
+
+        # EKF - predict
         pos_at = odom
         u = u_from_odom(pos_at, pos_prev)
+        pos_prev = pos_at
+        xEst, EEst = ekf_estimation(xEst, EEst, u)
+
+        static_transformStamped.header.stamp = rospy.Time.now()
+        static_transformStamped.header.frame_id = "map"
+        static_transformStamped.child_frame_id = "base_link"
+
+        static_transformStamped.transform.translation.x = xEst.item(0)
+        static_transformStamped.transform.translation.y = xEst.item(1)
+        static_transformStamped.transform.translation.z = 0
+
+        quat = tf.transformations.quaternion_from_euler(0,0,xEst.item(2))
+        static_transformStamped.transform.rotation.x = quat[0]
+        static_transformStamped.transform.rotation.y = quat[1]
+        static_transformStamped.transform.rotation.z = quat[2]
+        static_transformStamped.transform.rotation.w = quat[3]
+        broadcaster.sendTransform(static_transformStamped)
+        
+        print(xEst)
 
         
         i += 1
