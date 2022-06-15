@@ -6,13 +6,15 @@ from sensor_msgs.msg import LaserScan
 from nav_msgs.msg import Odometry
 from geometry_msgs.msg import *
 from tf2_msgs import *
+#import tf
 from tf.transformations import euler_from_quaternion
 #import scipy.linalg
 from cmath import pi
 
 range_ar = np.zeros((726, 1))
-pos = []
-ori = []
+#pos = []
+#ori = []
+odom = []
 
 
 #lidar_angles = np.linspace(-5, 5, 640)
@@ -317,9 +319,18 @@ def callback(msg):
 def callback2(msg):
     #print(msg.pose.pose)
     #return(msg.pose.pose)
-    global pos, ori
-    pos = msg.pose.pose.position
-    ori = msg.pose.pose.orientation
+    global odom#, pos, ori
+    #pos = [msg.pose.pose.position.x, msg.pose.pose.position.y]
+    quat = [msg.pose.pose.orientation.x, msg.pose.pose.orientation.y, msg.pose.pose.orientation.z, msg.pose.pose.orientation.w]
+    roll, pitch, yaw = euler_from_quaternion(quat)
+    odom = [msg.pose.pose.position.x, msg.pose.pose.position.y, yaw]
+
+
+def u_from_odom(pos_at, pos_prev):
+    drot = pos_at[2] - pos_prev[2]
+    dtrans = math.sqrt((pos_prev[0] - pos_at[0])**2 + (pos_prev[1] - pos_at[1])**2)
+    u = np.array([[dtrans], [drot]])
+    return u
 
 
 if __name__ == '__main__':
@@ -329,8 +340,11 @@ if __name__ == '__main__':
     call1 = rospy.Subscriber('/scan', LaserScan, callback)
     call2 = rospy.Subscriber('/pose', Odometry, callback2)
     i = 0
+    pos_prev = [0, 0, 0]
+    pos_at = [0, 0, 0]
+    xprev = np.array([0, 0, 0])
 
-    rate = rospy.Rate(10)
+    rate = rospy.Rate(5)
     while not rospy.is_shutdown():
 
         """
@@ -340,6 +354,7 @@ if __name__ == '__main__':
         print('---------------------------------------------------------')
         """
         thresholds = Thresholds()
+        #extact lines
         f = 0
         dist = np.zeros((726, 1))
         thetas = np.zeros((726, 1))
@@ -356,8 +371,11 @@ if __name__ == '__main__':
         #print(thetas.shape)
         dist = np.transpose(np.asmatrix(dist))
         thetas = np.transpose(np.asmatrix(thetas))
-        #z, Q, segends = extractlines(thetas, dist, thresholds)
-        print(i)
+        z, Q, segends = extractlines(thetas, dist, thresholds)
+        pos_at = odom
+        u = u_from_odom(pos_at, pos_prev)
+
+        
         i += 1
 
 

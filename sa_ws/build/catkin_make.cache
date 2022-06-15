@@ -1,2 +1,2 @@
-laser_line_extraction:pioneer_p3dx_model/p3dx_control:pioneer_p3dx_model/p3dx_description:pioneer_p3dx_model/p3dx_gazebo
+ekf_funcional:laser_line_extraction:transforms_quaisquer
 -DCATKIN_DEVEL_PREFIX=/home/kunfuxu/saut/sa_ws/devel -DCMAKE_INSTALL_PREFIX=/home/kunfuxu/saut/sa_ws/install -G Unix Makefiles

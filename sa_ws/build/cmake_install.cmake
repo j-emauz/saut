@@ -131,10 +131,9 @@ endif()
 if(NOT CMAKE_INSTALL_LOCAL_ONLY)
   # Include the install script for each subdirectory.
   include("/home/kunfuxu/saut/sa_ws/build/gtest/cmake_install.cmake")
-  include("/home/kunfuxu/saut/sa_ws/build/pioneer_p3dx_model/p3dx_control/cmake_install.cmake")
+  include("/home/kunfuxu/saut/sa_ws/build/ekf_funcional/cmake_install.cmake")
   include("/home/kunfuxu/saut/sa_ws/build/laser_line_extraction/cmake_install.cmake")
-  include("/home/kunfuxu/saut/sa_ws/build/pioneer_p3dx_model/p3dx_description/cmake_install.cmake")
-  include("/home/kunfuxu/saut/sa_ws/build/pioneer_p3dx_model/p3dx_gazebo/cmake_install.cmake")
+  include("/home/kunfuxu/saut/sa_ws/build/transforms_quaisquer/cmake_install.cmake")
 
 endif()
 
