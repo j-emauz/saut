@@ -9,20 +9,27 @@ from tf2_msgs import *
 import tf2_ros
 import tf
 from tf.transformations import euler_from_quaternion
-#import scipy.linalg
+import scipy.linalg
 from cmath import pi
 
 range_ar = np.zeros((726, 1))
 #pos = []
 #ori = []
 odom = [0, 0, 0]
+calledodom = 0
 
 REst = np.diag([
-    0.5,  # variance of location on x-axis ?????????
-    0.5,  # variance of location on y-axis ?????????
+    0.15,  # variance of location on x-axis ?????????
+    0.15,  # variance of location on y-axis ?????????
     np.deg2rad(10),  # variance of theta ??????????
 ]) ** 2  # predict state covariance
 
+mapa = np.array([[1.24104594, -1.9044985,  -0.3014955,  -1.84909599, -1.85181707,  2.85779854,
+   2.83997361,  2.8674252,  -1.88708245, -1.86734214,  2.82597699,  2.86858395,
+   2.83188971, -1.88913393, -1.91008894, -1.87884911],
+ [0.81356476,  0.96373292,  0.77672432,  7.78147595, 14.57948038,  5.644,
+   1.01533104,  2.68790192,  6.99924286,  6.80869188, 14.95263583,  5.93378429,
+   5.44786612,  0.93788508,   0.89029381, 14.508295]])
 
 #lidar_angles = np.linspace(-5, 5, 640)
 
@@ -30,9 +37,9 @@ REst = np.diag([
 
 class Thresholds:
     def __init__(self):
-        self.seg_min_length = 0.01
-        self.point_dist = 0.05
-        self.min_point_seg = 50
+        self.seg_min_length = 0.4 #blah blah
+        self.point_dist = 0.05 #line point dist threshold
+        self.min_point_seg = 25
 
 def fitline(pontos):
     # centroid de pontos considerando que o centroid de
@@ -312,23 +319,145 @@ def normalizelineparameters(alpha, r):
     return alpha, r, isRNegated
 
 
-#EKF FUNCTIONS
+# EKF FUNCTIONS
+# predict
 def ekf_estimation(xEst, Eest, u):
     # Predict step
     # xEst é o anterior e vai ser atualizado no final
-    G_x = np.array([[1.0, 0, -u[0, 0] * math.sin(xEst[2, 0] + u[1, 0])],
-                    [0, 1.0, u[0, 0] * math.cos(xEst[2, 0] + u[1, 0])],
-                    [0, 0, 1.0]])
+    G_x = np.array([[1.0, 0, -u[1, 0] * math.sin(xEst[2, 0] + u[0, 0])],
+                    [0, 1.0, u[1, 0] * math.cos(xEst[2, 0] + u[0, 0])],
+                    [0, 0, 1.0]]) #falta mudar o g
 
-    b = np.array([[u[0, 0] * math.cos(xEst[2, 0] + u[1, 0])],
-                  [u[0, 0] * math.sin(xEst[2, 0] + u[1, 0])],
-                  [u[1, 0]]])
+    #b = np.array([[u[0, 0] * math.cos(xEst[2, 0] + u[1, 0])],
+    #              [u[0, 0] * math.sin(xEst[2, 0] + u[1, 0])],
+    #              [u[1, 0]]])
+
+    b = np.array([[u[1, 0] * math.cos(xEst[2, 0] + u[0, 0])],
+                  [u[1, 0] * math.sin(xEst[2, 0] + u[0, 0])],
+                  [u[0, 0] + u[2, 0]]])
 
     Eest = G_x @ Eest @ G_x.T + REst
     xEst = xEst + b
 
     return xEst, Eest
+# update
+def updatemat(x, m):
+    h = np.array([[m[0] - x[2,0]], [m[1] - (x[0,0] * math.cos(m[0]) + x[1,0] * math.sin(m[0]))]])
+    Hxmat = np.array([[0, 0, -1], [-math.cos(m[0]), -math.sin(m[0]), 0]])
 
+    [h[0], h[1], isdistneg] = normalizelineparameters(h[0], h[1])
+
+    if isdistneg:
+        Hxmat[1, :] = -Hxmat[1, :]
+
+    return h, Hxmat
+
+
+def matching(x, P, Z, R_seg, M, g):
+    #Z: observations measurements
+    n_measurs = Z.shape[1]
+    n_map = M.shape[1]
+
+
+    d = np.zeros((n_measurs, n_map))
+    v = np.zeros((2, n_measurs * n_map))
+    H = np.zeros((2, 3, n_measurs * n_map ))
+
+    v = np.asmatrix(v)
+
+
+    for aux_nme in range(0, n_measurs):
+        for aux_nmap in range(0, n_map):
+            Z_predict, H[:, :, aux_nmap + (aux_nme) * n_map] = updatemat(x, M[:, aux_nmap])
+            #print(Z_predict.shape)
+            #print(Z[:, aux_nme].shape)
+            #print(v[:, aux_nmap + (aux_nme) * n_map].shape)
+            v[:, aux_nmap + (aux_nme) * n_map] = Z[:, aux_nme] - Z_predict
+            #print(P.shape)
+            #print(np.transpose(H[:, :, aux_nmap + (aux_nme) * n_map]).shape)
+            #print(H[:, :, aux_nmap + (aux_nme) * n_map].shape)
+
+            #linha com R multidimensional !!
+            W = H[:, :, aux_nmap + (aux_nme) * n_map] @ P @ np.transpose(H[:, :, aux_nmap + (aux_nme) * n_map]) + R_seg[:, :, aux_nme]
+
+            #W = H[:, :, aux_nmap + (aux_nme) * n_map] @ P @ np.transpose(H[:, :, aux_nmap + (aux_nme) * n_map]) + R_seg
+
+            #Mahalanahobis distance
+            d[aux_nme, aux_nmap] = np.transpose(v[:, aux_nmap + (aux_nme) * n_map]) * np.linalg.inv(W) * v[:, aux_nmap + (aux_nme) * n_map]
+
+
+    minima, mapidx = (np.transpose(d)).min(0), (np.transpose(d)).argmin(0)
+
+    measursidx = np.argwhere(minima < g**2)
+
+    print('measuridx')
+    print(measursidx)
+
+    mapidx = mapidx[np.transpose(measursidx)]
+    print('mapidx')
+    print(mapidx)
+
+    seletor = (mapidx + (np.transpose(measursidx))* n_map)
+    seletorl =[]
+    for fofo in range(0,seletor.shape[1]):
+        seletorl.append(seletor.item(fofo))
+
+    v = v[:, seletorl]
+    #print('v')
+    #print(v)
+
+    H = H[:, :, seletorl]
+
+    #print(np.reshape(H, (H.shape[0]*H.shape[2],3), 'F'))
+    #print(np.reshape(v, (v.shape[0]*v.shape[1],1), 'F'))
+
+    measursidx = np.transpose(measursidx)
+    measuridxl = []
+    for beto in range(0, measursidx.shape[1]):
+        measuridxl.append(measursidx.item(beto))
+    if seletorl == []:
+        R_seg = R_seg[:, :, seletorl]
+    else:
+        R_seg = R_seg[:, :, measuridxl]
+
+    return v, H, R_seg
+
+
+def step_update(x_pred, E_pred,  Z, R_seg, mapa, g):
+
+    if Z.shape[1]==0:
+        x_up = x_pred
+        E_up = E_pred
+
+    v, H, R_seg = matching(x_pred, E_pred, Z, R_seg, mapa, g)
+
+
+
+    #mudar formato de v, H e R para usar nas equacoes
+    y = np.reshape(v, (v.shape[0]*v.shape[1],1), 'F')
+
+    Hreshape = np.zeros((H.shape[0] * H.shape[2], 3))
+    cenoura = 0
+    for batata in range(0, H.shape[2]):
+        Hreshape[cenoura, :] = H[0, :, batata]
+        Hreshape[cenoura + 1, :] = H[1, :, batata]
+        cenoura = cenoura + 2
+
+    if R_seg.shape[2] == 0:
+        R_seg1 = []
+    else:
+        R_seg1 = R_seg[:, :, 0]
+        for bruh in range(1, R_seg.shape[2]):
+            R_seg1 = scipy.linalg.block_diag(R_seg1, R_seg[:, :, bruh])
+
+
+    S = Hreshape @ E_pred @ np.transpose(Hreshape) + R_seg1
+    K = E_pred @ np.transpose(Hreshape) @ (np.linalg.inv(S))
+
+    E_up = E_pred - K @ S @ np.transpose(K)
+    x_up = x_pred + K @ y
+
+    return x_up, E_up
 
 
 # ROS FUNCTIONS
@@ -344,17 +473,22 @@ def callback(msg):
 def callback2(msg):
     #print(msg.pose.pose)
     #return(msg.pose.pose)
-    global odom#, pos, ori
+    global odom, calledodom #, pos, ori
     #pos = [msg.pose.pose.position.x, msg.pose.pose.position.y]
     quat = [msg.pose.pose.orientation.x, msg.pose.pose.orientation.y, msg.pose.pose.orientation.z, msg.pose.pose.orientation.w]
     roll, pitch, yaw = euler_from_quaternion(quat)
     odom = [msg.pose.pose.position.x, msg.pose.pose.position.y, yaw]
+    calledodom = 1
 
 
 def u_from_odom(pos_at, pos_prev):
-    drot = pos_at[2] - pos_prev[2]
+    #drot = pos_at[2] - pos_prev[2]
+    drot1 = math.atan2(pos_at[1] - pos_prev[1],pos_at[0] - pos_prev[0]) - pos_prev[2]
     dtrans = math.sqrt((pos_prev[0] - pos_at[0])**2 + (pos_prev[1] - pos_at[1])**2)
-    u = np.array([[dtrans], [drot]])
+    drot2 = pos_at[2] - pos_prev[2] - drot1
+
+    #u = np.array([[dtrans], [drot]])
+    u = np.array([[drot1], [dtrans], [drot2]])
     return u
 
 
@@ -373,14 +507,21 @@ if __name__ == '__main__':
 
     # initializations
     i = 0
-    pos_prev = [0, 0, 0]
+    co = 0
+    pos_prev = odom
     pos_at = [0, 0, 0]
     EEst = np.eye(3)
-    xEst = np.array([[0], [0], [0]])
+    #xEst = np.array([[0], [0.00], [0]])
+    xEst = np.array([[-0.026], [-0.001], [0]])
+    roll, pitch, yaw = euler_from_quaternion([-0.0, 0.0, 0.8090169943749475, -0.587785252292473])
+    xEst[2] = yaw
+    #xEst[2] = pi
+    g = 0.8
 
     rate = rospy.Rate(5)
     while not rospy.is_shutdown():
-
+        #print('-----------------------------------------------------------x-----------------------')
+        #print(xEst)
         """
         print('Range length = ', range_ar.shape)
         print(pos)
@@ -406,16 +547,28 @@ if __name__ == '__main__':
         dist = np.transpose(np.asmatrix(dist))
         thetas = np.transpose(np.asmatrix(thetas))
         z, Q, segends = extractlines(thetas, dist, thresholds)
+        
 
         # EKF - predict
+        if calledodom == 1 and co == 0:
+            co = 1
+            pos_prev = odom
         pos_at = odom
         u = u_from_odom(pos_at, pos_prev)
+        #print('pos_prev = ', end='')
+        #print(pos_prev)
+        #print('pos_at = ', end='')
+        #print(pos_at)
         pos_prev = pos_at
         xEst, EEst = ekf_estimation(xEst, EEst, u)
 
+        # EKF - update
+        xEst, EEst = step_update(xEst, EEst, z, Q, mapa, g)
+        xEst = np.asarray(xEst)
+
         static_transformStamped.header.stamp = rospy.Time.now()
         static_transformStamped.header.frame_id = "map"
-        static_transformStamped.child_frame_id = "base_link"
+        static_transformStamped.child_frame_id = "base_link" # ou laser??????
 
         static_transformStamped.transform.translation.x = xEst.item(0)
         static_transformStamped.transform.translation.y = xEst.item(1)
