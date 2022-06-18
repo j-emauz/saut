@@ -246,7 +246,10 @@ def split_merge(theta, rho, thersholds):
 
     for c in range(0,alpha.shape[0]):
         for j in range(0,2):
-            R_seg[j,j,c] = 0.5
+            if j == 0:
+                R_seg[j,j,c] = 0.2 ** 2
+            if j == 1:
+                R_seg[j,j,c] = np.deg2rad(6) ** 2
 
     return z, R_seg, seg_i_f
 
