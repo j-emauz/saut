@@ -487,7 +487,7 @@ if __name__ == '__main__':
 
         static_transformStamped.header.stamp = rospy.Time.now()
         static_transformStamped.header.frame_id = "map"
-        static_transformStamped.child_frame_id = "base_link" # ou laser??????
+        static_transformStamped.child_frame_id = "laser" # ou laser??????
 
         static_transformStamped.transform.translation.x = x_est.item(0)
         static_transformStamped.transform.translation.y = x_est.item(1)
