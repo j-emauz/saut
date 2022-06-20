@@ -13,8 +13,6 @@ import scipy.linalg
 from cmath import pi
 
 range_ar = np.zeros((726, 1))
-#pos = []
-#ori = []
 odom = [0, 0, 0]
 calledodom = 0
 
@@ -30,8 +28,6 @@ mapa = np.array([[1.24104594, -1.9044985,  -0.3014955,  -1.84909599, -1.85181707
  [0.81356476,  0.96373292,  0.77672432,  7.78147595, 14.57948038,  5.644,
    1.01533104,  2.68790192,  6.99924286,  6.80869188, 14.95263583,  5.93378429,
    5.44786612,  0.93788508,   0.89029381, 14.508295]])
-
-#lidar_angles = np.linspace(-5, 5, 640)
 
 #LINE FUNCTIONS
 
@@ -487,7 +483,7 @@ if __name__ == '__main__':
         static_transformStamped.header.stamp = rospy.Time.now()
         static_transformStamped.header.frame_id = "map"
         static_transformStamped.child_frame_id = "laser" 
-        
+
         static_transformStamped.transform.translation.x = x_est.item(0)
         static_transformStamped.transform.translation.y = x_est.item(1)
         static_transformStamped.transform.translation.z = 0
