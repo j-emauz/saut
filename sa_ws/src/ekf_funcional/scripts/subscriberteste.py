@@ -412,8 +412,7 @@ def u_from_odom(pos_at, pos_prev):
 
 
 if __name__ == '__main__':
-    rospy.init_node('monkey')
-    #rate = rospy.Rate(10)
+    rospy.init_node('ekf_location')
 
     # subscribe to odom and laser
     call1 = rospy.Subscriber('/scan', LaserScan, callback)
@@ -487,8 +486,8 @@ if __name__ == '__main__':
 
         static_transformStamped.header.stamp = rospy.Time.now()
         static_transformStamped.header.frame_id = "map"
-        static_transformStamped.child_frame_id = "laser" # ou laser??????
-
+        static_transformStamped.child_frame_id = "laser" 
+        
         static_transformStamped.transform.translation.x = x_est.item(0)
         static_transformStamped.transform.translation.y = x_est.item(1)
         static_transformStamped.transform.translation.z = 0
