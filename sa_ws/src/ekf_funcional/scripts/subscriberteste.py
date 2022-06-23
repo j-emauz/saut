@@ -243,9 +243,10 @@ def split_merge(theta, rho, thersholds):
     for c in range(0,alpha.shape[0]):
         for j in range(0,2):
             if j == 0:
-                R_seg[j,j,c] = 0.2 ** 2
-            if j == 1:
                 R_seg[j,j,c] = np.deg2rad(6) ** 2
+            if j == 1:
+                R_seg[j,j,c] = (0.7/(seg_len[c])) ** 2
+                # print(R_seg[j,j,c])
 
     return z, R_seg, seg_i_f
 
@@ -425,14 +426,28 @@ if __name__ == '__main__':
     pos_prev = odom
     pos_at = [0, 0, 0]
     E_est = np.eye(3)
+
     #x_est = np.array([[0], [0.00], [0]])
-    x_est = np.array([[-0.026], [-0.001], [0]])
-    roll, pitch, yaw = euler_from_quaternion([-0.0, 0.0, 0.8090169943749475, -0.587785252292473])
-    x_est[2] = yaw
+    ## Primeiros bags
+    #x_est = np.array([[-0.026], [-0.001], [0]])
+    #roll, pitch, yaw = euler_from_quaternion([-0.0, 0.0, 0.8090169943749475, -0.587785252292473])
+    #x_est[2] = yaw
     #x_est[2] = pi
+    
+    ## experiencia stat 1 inicalizaçao
+    x_est = np.array([[-0.07474735], [-0.17609634], [-1.92118615]])
+    # x_est = np.array([[-0.07474735], [-0.17609634], [-1.10]])
+
+    ## experiencia stat 2 inicializaçao
+    # x_est = np.array([[-0.17170134], [0.05718748], [2.7251791]])
+
+    ## experiencia stat 3 inicializaçao
+    #x_est = np.array([[-1.97160217], [-6.44229315], [-1.96105382]])
+
+
     g = 0.8
 
-    rate = rospy.Rate(5)
+    rate = rospy.Rate(4)
     while not rospy.is_shutdown():
         #print('-----------------------------------------------------------x-----------------------')
         #print(x_est)
@@ -481,6 +496,8 @@ if __name__ == '__main__':
         x_est = np.asarray(x_est)
 
         static_transformStamped.header.stamp = rospy.Time.now()
+        # now = rospy.get_rostime()
+        # rospy.loginfo("Current time %i %i", now.secs, now.nsecs)
         static_transformStamped.header.frame_id = "map"
         static_transformStamped.child_frame_id = "laser" 
 
@@ -496,6 +513,7 @@ if __name__ == '__main__':
         broadcaster.sendTransform(static_transformStamped)
         
         print(x_est)
+        print(E_est)
 
         
         i += 1
