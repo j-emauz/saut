@@ -245,9 +245,7 @@ def split_merge(theta, rho, thersholds):
             if j == 0:
                 R_seg[j,j,c] = np.deg2rad(6) ** 2
             if j == 1:
-                R_seg[j,j,c] = (0.7/(seg_len[c])) ** 2
-                # print(R_seg[j,j,c])
-
+                R_seg[j,j,c] = (0.5/(seg_len[c])) ** 2
     return z, R_seg, seg_i_f
 
 
@@ -436,7 +434,6 @@ if __name__ == '__main__':
     
     ## experiencia stat 1 inicalizaçao
     x_est = np.array([[-0.07474735], [-0.17609634], [-1.92118615]])
-    # x_est = np.array([[-0.07474735], [-0.17609634], [-1.10]])
 
     ## experiencia stat 2 inicializaçao
     # x_est = np.array([[-0.17170134], [0.05718748], [2.7251791]])
@@ -447,7 +444,7 @@ if __name__ == '__main__':
 
     g = 0.8
 
-    rate = rospy.Rate(4)
+    rate = rospy.Rate(5)
     while not rospy.is_shutdown():
         #print('-----------------------------------------------------------x-----------------------')
         #print(x_est)
@@ -512,7 +509,7 @@ if __name__ == '__main__':
         static_transformStamped.transform.rotation.w = quat[3]
         broadcaster.sendTransform(static_transformStamped)
         
-        print(x_est)
+        # print(x_est)
         print(E_est)
 
         
