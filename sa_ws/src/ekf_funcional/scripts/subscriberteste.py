@@ -16,12 +16,14 @@ range_ar = np.zeros((726, 1))
 odom = [0, 0, 0]
 calledodom = 0
 
+#Matriz covariancia noise de movimento Q
 Q_est = np.diag([
-    0.1,  # variance of location on x-axis
-    0.1,  # variance of location on y-axis
-    np.deg2rad(2.0),  # variance of theta
+    0.1,  
+    0.1,  
+    np.deg2rad(2.0),  
 ]) ** 2  
 
+# matrix com dados obtidos das features do mapa (alpha (rad), r (m) de cada linha)
 mapa = np.array([[1.24104594, -1.9044985,  -0.3014955,  -1.84909599, -1.85181707,  2.85779854,
    2.83997361,  2.8674252,  -1.88708245, -1.86734214,  2.82597699,  2.86858395,
    2.83188971, -1.88913393, -1.91008894, -1.87884911],
