@@ -381,10 +381,6 @@ def update(x_est, E_est, z, R_seg, mapa, g):
 # ROS FUNCTIONS
 
 def callback(msg):
-    #rospy.loginfo(rospy.get_caller_id() + "I heard %s", data.data)
-    #print(type(msg.ranges))
-    #print(len(msg.ranges))
-    #return len(msg.ranges)
     global range_ar
     range_ar = np.asarray(msg.ranges)
 
@@ -400,12 +396,10 @@ def callback2(msg):
 
 
 def u_from_odom(pos_at, pos_prev):
-    #drot = pos_at[2] - pos_prev[2]
     drot1 = math.atan2(pos_at[1] - pos_prev[1],pos_at[0] - pos_prev[0]) - pos_prev[2]
     dtrans = math.sqrt((pos_prev[0] - pos_at[0])**2 + (pos_prev[1] - pos_at[1])**2)
     drot2 = pos_at[2] - pos_prev[2] - drot1
 
-    #u = np.array([[dtrans], [drot]])
     u = np.array([[drot1], [dtrans], [drot2]])
     return u
 
@@ -513,8 +507,8 @@ if __name__ == '__main__':
         static_transformStamped.transform.rotation.w = quat[3]
         broadcaster.sendTransform(static_transformStamped)
         
-        # print(x_est)
-        print(E_est)
+        print(x_est)
+        # print(E_est)
 
         
         i += 1
