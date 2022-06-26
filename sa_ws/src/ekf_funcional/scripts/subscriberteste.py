@@ -313,9 +313,9 @@ def matching(x, P, z, R_seg, M, g):
         for aux_nmap in range(0, n_map):
             z_predict, H[:, :, aux_nmap + (aux_nme) * n_map] = update_mat(x, M[:, aux_nmap])
             v[:, aux_nmap + (aux_nme) * n_map] = z[:, aux_nme] - z_predict
-            W = H[:, :, aux_nmap + (aux_nme) * n_map] @ P @ np.transpose(H[:, :, aux_nmap + (aux_nme) * n_map]) + R_seg[:, :, aux_nme]
+            E_in = H[:, :, aux_nmap + (aux_nme) * n_map] @ P @ np.transpose(H[:, :, aux_nmap + (aux_nme) * n_map]) + R_seg[:, :, aux_nme]
             #Distancia Mahalanahobis
-            d[aux_nme, aux_nmap] = np.transpose(v[:, aux_nmap + (aux_nme) * n_map]) * np.linalg.inv(W) * v[:, aux_nmap + (aux_nme) * n_map]
+            d[aux_nme, aux_nmap] = np.transpose(v[:, aux_nmap + (aux_nme) * n_map]) * np.linalg.inv(E_in) * v[:, aux_nmap + (aux_nme) * n_map]
 
 
     min_mahal, map_id = (np.transpose(d)).min(0), (np.transpose(d)).argmin(0)
@@ -365,10 +365,10 @@ def update(x_est, E_est, z, R_seg, mapa, g):
         for bruh in range(1, R_seg.shape[2]):
             R_seg1 = scipy.linalg.block_diag(R_seg1, R_seg[:, :, bruh])
 
-    S = Hreshape @ E_est @ np.transpose(Hreshape) + R_seg1
-    K = E_est @ np.transpose(Hreshape) @ (np.linalg.inv(S))
+    E_in = Hreshape @ E_est @ np.transpose(Hreshape) + R_seg1
+    K = E_est @ np.transpose(Hreshape) @ (np.linalg.inv(E_in))
 
-    E_up = E_est - K @ S @ np.transpose(K)
+    E_up = E_est - K @ E_in @ np.transpose(K)
     x_up = x_est + K @ y
 
     return x_up, E_up
